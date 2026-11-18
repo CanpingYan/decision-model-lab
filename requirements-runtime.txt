@@ -1,0 +1,10 @@
+# Laya full-precision local inference. The HTTP app itself uses Python stdlib.
+# Install these in .runtime/laya-venv; unrelated optional Vega/vision stacks are not used.
+torch==2.10.0
+transformers==4.57.6
+safetensors==0.7.0
+huggingface-hub==0.36.0
+numpy==2.5.5
+cryptography==50.0.2
+# Install official laya==0.4.35 with --no-deps after the above packages;
+# its optional Vega engine is not involved in this application's Laya inference.

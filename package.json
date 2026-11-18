@@ -1,0 +1,10 @@
+{
+  "name": "decision-model-lab",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 app/serve.py",
+    "test": "python3 -m unittest discover -s tests/lab -p 'test_*.py' -v && node --test tests/lab/frontend_state_test.mjs"
+  }
+}

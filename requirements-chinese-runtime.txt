@@ -1,0 +1,4 @@
+# Separate environment: never upgrade the existing Laya runtime in place.
+torch==2.10.0
+transformers==5.3.0
+safetensors==0.7.0

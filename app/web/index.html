@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="选择用例集，演示决策过程，对比四类模型。">
+  <title>Decision Model Lab · 决策模型实验室</title>
+  <script>
+    (() => {
+      let preference='system';
+      try { const saved=localStorage.getItem('decision-lab-theme'); if(['light','dark','system'].includes(saved))preference=saved; } catch {}
+      document.documentElement.dataset.theme=preference==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):preference;
+      document.documentElement.dataset.themePreference=preference;
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23745ad5'/%3E%3Cpath d='M12 10h7c8 0 12 4 12 10s-4 10-12 10h-7V10zm5 5v10h2c5 0 7-2 7-5s-2-5-7-5h-2z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Decision Model Lab 首页"><span class="brand-mark">D</span><div><h1>Decision Model Lab</h1><p>决策模型实验室</p></div></a>
+    <div class="topbar-actions"><label class="sr-only" for="theme-select">颜色模式</label><select id="theme-select" aria-label="颜色模式"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select><button class="button ghost compact" id="refresh-status" title="刷新模型与用例集状态">刷新 <span aria-hidden="true">↻</span></button></div>
+  </header>
+  <main>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section class="dataset-panel" aria-labelledby="dataset-heading">
+      <div class="dataset-main"><label class="dataset-label" for="dataset-select" id="dataset-heading">当前用例集</label><select id="dataset-select" aria-label="当前用例集" disabled><option value="">请导入 Excel</option></select><div class="dataset-info" id="dataset-info" hidden></div></div>
+      <div class="dataset-actions"><label class="button primary file-button" id="import-label" for="import-file"><span aria-hidden="true">＋</span><span id="import-button-text">导入 Excel</span><input id="import-file" type="file" multiple accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" title="可同时选择多个 Excel 文件"></label></div>
+      <div class="example-downloads"><span>示例用例</span><a href="/examples/中文简单用例200题.xlsx" download aria-label="下载中文简单用例200题">简单 <span>200题</span></a><a href="/examples/中文一般用例200题.xlsx" download aria-label="下载中文一般用例200题">一般 <span>200题</span></a><a href="/examples/中文复杂用例200题.xlsx" download aria-label="下载中文复杂用例200题">复杂 <span>200题</span></a><a class="template-link" href="/examples/测试用例模板.xlsx" download>Excel 模板 ↗</a></div>
+    </section>
+    <section class="models-section" aria-labelledby="models-heading"><div class="section-heading"><h2 id="models-heading">模型</h2></div><div class="model-grid" id="model-grid"><div class="model-placeholder">正在检查模型…</div></div></section>
+    <nav class="tabs" role="tablist" aria-label="功能选择"><button id="tab-demo" class="tab active" aria-selected="true" role="tab" disabled>场景演示</button><button id="tab-compare" class="tab" aria-selected="false" role="tab" disabled>对比测试</button><span id="tab-context">请先导入用例</span></nav>
+    <section id="needs-import" class="empty-workspace"><span class="empty-mark" aria-hidden="true">＋</span><h2>导入用例，开始测试</h2><p>可同时导入多个 Excel 用例集。</p><label class="button primary file-button" for="import-file">选择 Excel</label></section>
+    <div id="lab-content" hidden>
+      <section id="demo-view" role="tabpanel" aria-labelledby="tab-demo"><div class="demo-grid">
+        <section class="panel case-panel" aria-labelledby="case-panel-heading"><div class="panel-head"><h2 id="case-panel-heading">测试用例</h2></div><div class="form-row"><label>模型<select id="demo-model" aria-label="演示模型"></select></label><label>场景<select id="demo-scene" aria-label="演示场景"></select></label></div><label class="form-label">用例<select id="demo-case" aria-label="演示用例"></select></label><div id="case-meta" class="case-meta"></div><div class="subheading">上下文</div><pre id="case-state" class="state-content"></pre><div id="case-questions" class="case-questions"></div><div class="run-action"><button class="button primary" id="demo-run">运行本题 <span aria-hidden="true">→</span></button><span id="demo-hint" class="muted"></span></div><details class="answer-details"><summary>标准答案与依据</summary><div id="case-gold"></div></details></section>
+        <section class="panel trace-panel" aria-labelledby="trace-heading"><div class="panel-head"><h2 id="trace-heading">决策过程</h2></div><div id="demo-result" aria-live="polite"><div class="trace-empty"><span aria-hidden="true">◇</span><p>选择用例后运行</p></div></div></section>
+      </div></section>
+      <section id="compare-view" role="tabpanel" aria-labelledby="tab-compare" hidden>
+        <section class="panel compare-controls"><div class="panel-head"><h2>测试范围</h2></div><div id="compare-models" class="model-choices" aria-label="参与对比的模型"></div><div class="compare-range"><label>场景<select id="compare-scene" aria-label="对比场景"></select></label><label>范围<select id="compare-scope" aria-label="用例范围"><option value="all">当前场景全部用例</option><option value="single">单条用例</option><option value="selected">勾选用例</option></select></label><label id="compare-case-wrap" hidden>用例<select id="compare-case" aria-label="指定对比用例"></select></label><button class="button secondary compact" id="toggle-cases" hidden>选择用例</button></div>
+          <div class="case-picker" id="case-picker" hidden><div class="picker-actions"><button class="text-button" id="select-all-cases">全选</button><button class="text-button" id="clear-cases">清空</button><span id="selected-cases-count" class="muted"></span></div><div id="case-checkboxes"></div></div><div class="batch-actions"><button class="button primary" id="compare-run">开始对比 <span aria-hidden="true">→</span></button><button class="button secondary" id="compare-run-all">全部场景</button><button class="button stop" id="compare-stop" disabled>停止</button><span id="batch-plan" class="muted"></span></div>
+        </section>
+        <section class="run-progress" id="run-progress" hidden aria-live="polite"><div class="progress-title"><strong id="progress-label">准备测试</strong><span id="progress-count"></span></div><progress id="batch-progress" max="1" value="0"></progress><p id="progress-detail" class="muted"></p></section>
+        <div class="results-heading"><div><h2>对比结果</h2><p id="results-caption" class="muted">尚未测试</p></div><div class="export-actions"><button class="button ghost compact" id="export-json" disabled>JSON ↗</button><button class="button ghost compact" id="export-csv" disabled>CSV ↗</button></div></div><div id="score-cards" class="score-grid"></div>
+        <div class="panel matrix-panel" id="matrix-panel" hidden><div class="panel-head"><h3>分场景结果</h3><span class="muted">正确 / 已评分</span></div><div class="table-scroll"><table id="comparison-matrix"></table></div></div>
+        <section class="panel results-panel"><div class="result-filters"><h3>逐题对照</h3><label class="sr-only" for="result-filter">结果筛选</label><select id="result-filter"><option value="all">全部用例</option><option value="incorrect">存在错题</option><option value="error">请求异常</option><option value="tested">已测试</option></select><label class="sr-only" for="case-search">搜索用例</label><input id="case-search" type="search" placeholder="搜索用例"><span id="result-count" class="muted"></span></div><div class="table-scroll"><table id="result-table"></table></div><div id="result-empty" class="small-empty" hidden>没有符合条件的用例</div></section>
+      </section>
+    </div>
+  </main>
+  <dialog id="result-dialog"><div class="dialog-head"><h2 id="dialog-title"></h2><button class="icon-button" id="close-dialog" aria-label="关闭详情">×</button></div><div id="dialog-body"></div></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
