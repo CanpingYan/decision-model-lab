@@ -19,7 +19,6 @@ try:
     with contextlib.redirect_stdout(sys.stderr):
         import torch
         import laya
-        from laya.common import collapsed_options
 
         torch.set_num_threads(4)
         started = time.perf_counter()
@@ -39,19 +38,13 @@ try:
         max_len, head_max_len = 8192, 2048
 
         def predict(task):
-            questions = task["questions"]
-            ids = list(questions)
-            internal = {qid: agent._to_internal(q) for qid, q in questions.items()}
-            # Pinned official tokenizer/sequence builder provides the exact truncation signal.
-            items = agent._encode_state(task["state"], ids, internal,
-                                        max_len=max_len, head_max_len=head_max_len)
-            if any(item["state_stats"]["truncated"] for item in items):
-                raise ValueError("输入超过 Laya 8192 token 上限，已拒绝推理；请缩短上下文")
-            if collapsed_options(ids, items):
-                raise ValueError("候选项描述超过 Laya 问题预算，无法完整区分；请缩短描述")
-            result = agent.predict(task["state"], questions, max_len=max_len, head_max_len=head_max_len)
-            if result.get("usage", {}).get("truncated"):
-                raise ValueError("Laya 报告输入被截断，结果未计入测试")
+            result = agent.predict(task["state"], task["questions"],
+                                   max_len=max_len, head_max_len=head_max_len)
+            usage = result["usage"]
+            if usage.get("truncated"):
+                raise ValueError("输入超过 Laya 8192 token 预算，结果已丢弃，请缩短上下文")
+            if usage.get("options"):
+                raise ValueError("Laya 编码后无法区分部分候选项，请缩短或改写候选名称和说明")
             result["model"] = os.environ.get("LAYA_MODEL_ID", "convaiinnovations/laya-multilingual")
             result["execution"] = {"device": device, "dtype": "float32", "quantized": False,
                 "revision": os.environ.get("LAYA_REVISION", ""), "maxLength": max_len,

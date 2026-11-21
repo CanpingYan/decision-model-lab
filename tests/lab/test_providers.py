@@ -7,6 +7,7 @@ import threading
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from app.lab.core import run_case
 from app.lab.providers import ModelError, ProviderRegistry
 
 TASK = {"state": "重复扣款尚未退款，旧故障已经修复。", "questions": {"route": {
@@ -36,6 +37,23 @@ class ProvidersTest(unittest.TestCase):
             "content": '{"answers":{"route":"账务"}}'}}]}
         answer = registry.decide("deepseek", TASK)["answers"]["route"]
         self.assertEqual(answer, {"choice": "账务"})
+
+    def test_echoed_api_key_is_omitted_from_success_and_error_records(self):
+        key = "fake-gateway-test-credential"
+        registry = ProviderRegistry({"JEV_API_KEY": key})
+        case = {**TASK, "id": "W01", "scene": "工单分流", "expected": {"route": "账务"}}
+        for choice, status in [("账务", "success"), ("不存在", "error")]:
+            with self.subTest(status=status):
+                registry._post = lambda *args: {
+                    "answers": {"route": {"choice": choice}},
+                    "diagnostics": [{"Authorization": "Bearer " + key, key: "echoed"}],
+                }
+                result = run_case(registry, case, "jev")
+                self.assertEqual(result["status"], status)
+                self.assertNotIn(key, str(result))
+                self.assertEqual(result["raw"]["stages"][0]["diagnostics"], [
+                    {"Authorization": "Bearer [redacted]", "[redacted]": "echoed"},
+                ])
 
     def test_invalid_label_and_distribution_refuse_a_valid_result(self):
         registry = ProviderRegistry({"JEV_API_KEY": "test-key"})

@@ -101,6 +101,16 @@ def _normalise_answers(raw_answers, questions):
     return answers
 
 
+def _redact_api_key(value, key):
+    if isinstance(value, str):
+        return value.replace(key, "[redacted]")
+    if isinstance(value, dict):
+        return {_redact_api_key(name, key): _redact_api_key(item, key) for name, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_api_key(item, key) for item in value]
+    return value
+
+
 class _LocalWorker:
     def __init__(self, settings, model_id):
         self.settings = settings
@@ -336,7 +346,8 @@ class ProviderRegistry:
                                      {"role": "user", "content": json.dumps(task, ensure_ascii=False)}]}
             else:
                 body = {"model": model, **task}
-            raw = self._post(endpoint, key, body)
+            # Compatible gateways may echo credentials in an otherwise valid response.
+            raw = _redact_api_key(self._post(endpoint, key, body), key)
             if model_id == "deepseek":
                 try:
                     content = raw["choices"][0]["message"]["content"]

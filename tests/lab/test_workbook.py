@@ -52,6 +52,12 @@ class WorkbookTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '重复'):
             import_workbook(xlsx([row(), row()]), '重复.xlsx')
 
+    def test_duplicate_json_choice_labels_are_rejected_before_overwriting(self):
+        duplicate = row()
+        duplicate[6] = '{"报告":"已经发生","提问":"寻求确认","报告":"尚未发生"}'
+        with self.assertRaisesRegex(ValueError, '候选项“报告”重复'):
+            import_workbook(xlsx([duplicate]), '重复候选.xlsx')
+
     def test_conditional_cycles_are_rejected_before_running(self):
         parent = row()
         parent[8] = 'relation=替代'

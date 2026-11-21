@@ -65,6 +65,7 @@ def run_case(registry, case, model_id, cancelled=None):
     try:
         while pending:
             ready = {}
+            pending_before = len(pending)
             for key, question in list(pending.items()):
                 condition = conditions.get(key)
                 if condition:
@@ -81,9 +82,9 @@ def run_case(registry, case, model_id, cancelled=None):
                 if len(ready) < 4:
                     ready[key] = question
             if not ready:
-                if pending:
-                    raise ValueError('问题依赖无法解析，请检查启用条件')
-                break
+                if len(pending) < pending_before:
+                    continue
+                raise ValueError('问题依赖无法解析，请检查启用条件')
             # This allowlist is the sole seam that constructs model input.
             task = {'state': deepcopy(case['state']), 'questions': deepcopy(ready)}
             if cancelled and cancelled():

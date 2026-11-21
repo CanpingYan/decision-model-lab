@@ -65,6 +65,22 @@ class CoreTest(unittest.TestCase):
         self.assertEqual(registry.calls[1]['state'], case['state'])
         self.assertNotIn('expected', json.dumps(registry.calls, ensure_ascii=False))
 
+    def test_skipped_parent_propagates_to_earlier_question_in_dependency_chain(self):
+        case = sample()
+        case['questions'] = {'confirm': case['questions']['relation'].copy(), **case['questions']}
+        case['conditions']['confirm'] = {'question': 'relation', 'equals': '替代'}
+        validate_case(case)
+        registry = FakeRegistry()
+
+        result = run_case(registry, case, 'jev')
+
+        self.assertTrue(result['correct'])
+        self.assertEqual(len(registry.calls), 1)
+        self.assertEqual(
+            [(step['questionIds'], step['status']) for step in result['trace']],
+            [(['kind'], 'success'), (['relation'], 'skipped'), (['confirm'], 'skipped')],
+        )
+
     def test_invalid_labels_are_errors_and_raw_output_is_preserved(self):
         class Invalid(FakeRegistry):
             def decide(self, model_id, task):

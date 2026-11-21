@@ -88,11 +88,20 @@ def read_rows(data):
         return rows
 
 
+def _unique_choices(pairs):
+    choices = {}
+    for key, description in pairs:
+        if key in choices:
+            raise ValueError(f'候选项“{key}”重复')
+        choices[key] = description
+    return choices
+
+
 def parse_choices(text):
     try:
-        value = json.loads(text)
+        value = json.loads(text, object_pairs_hook=_unique_choices)
     except (json.JSONDecodeError, TypeError):
-        value = {}
+        pairs = []
         for line in str(text).splitlines():
             if not line.strip():
                 continue
@@ -100,9 +109,8 @@ def parse_choices(text):
             if len(parts) != 2:
                 raise ValueError('候选项请每行写“选项：说明”，或填写 JSON 对象')
             key, description = (p.strip() for p in parts)
-            if key in value:
-                raise ValueError(f'候选项“{key}”重复')
-            value[key] = description
+            pairs.append((key, description))
+        value = _unique_choices(pairs)
     if not isinstance(value, dict) or not 2 <= len(value) <= 10:
         raise ValueError('每个决策问题需要 2–10 个候选项')
     if any(not isinstance(k, str) or not k.strip() or len(k) > 80 or
